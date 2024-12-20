@@ -1,22 +1,31 @@
-name: Auto Merge on PR Creation
+name: Auto Approve and Merge on PR Creation
 
 on:
   pull_request:
     types: [opened]
 
 jobs:
-  auto-merge:
+  auto-approve:
     runs-on: self-hosted
+    env:
+      PR_URL: ${{ github.event.pull_request.html_url }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v4
 
-      - name: Approve and merge PR
+      - name: Approve PR
         if: contains(github.head_ref, 'sample_add')
-        env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh pr review "$PR_URL" --approve
-          gh pr merge "$PR_URL" --merge
+        run: gh pr review "$PR_URL" --approve
+
+  auto-merge:
+    runs-on: self-hosted
+    needs: auto-approve
+    env:
+      PR_URL: ${{ github.event.pull_request.html_url }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - name: Merge PR
+        run: gh pr merge "$PR_URL" --auto --merge
